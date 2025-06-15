@@ -52,6 +52,29 @@ gulp.task('compile:ts', () => {
     .pipe(gulp.dest(paths.dist));
 });
 
+// 生产环境编译（无 sourcemap，压缩）
+gulp.task('compile:ts:prod', () => {
+  return gulp.src([paths.src.server])
+    .pipe(tsProject())
+    .pipe(babel({
+      presets: [
+        ['@babel/preset-env', {
+          targets: { node: '18' },
+          modules: 'commonjs'
+        }],
+        '@babel/preset-typescript'
+      ],
+      plugins: [
+        '@babel/plugin-transform-runtime',
+        '@babel/plugin-syntax-dynamic-import',
+        '@babel/plugin-proposal-class-properties'
+      ],
+      compact: true,
+      minified: true
+    }))
+    .pipe(gulp.dest(paths.dist));
+});
+
 // 复制 JSON 配置文件
 gulp.task('copy:json', () => {
   return gulp.src([paths.src.json])
@@ -70,11 +93,12 @@ gulp.task('copy:package', () => {
     .pipe(gulp.dest(paths.dist));
 });
 
-// 创建启动脚本
-gulp.task('create:launcher', () => {
+// 创建开发环境启动脚本
+gulp.task('create:launcher:dev', () => {
   const launcherContent = `#!/usr/bin/env node
-// 生产环境启动脚本
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+// 开发环境启动脚本
+process.env.NODE_ENV = 'development';
+console.log('🚀 启动开发服务器 (端口: 8081)');
 require('./app.js');
 `;
   
@@ -83,7 +107,26 @@ require('./app.js');
   
   return new Promise((resolve) => {
     fs.writeFileSync(launcherPath, launcherContent);
-    console.log('✅ 启动脚本创建成功');
+    console.log('✅ 开发环境启动脚本创建成功');
+    resolve();
+  });
+});
+
+// 创建生产环境启动脚本
+gulp.task('create:launcher:prod', () => {
+  const launcherContent = `#!/usr/bin/env node
+// 生产环境启动脚本
+process.env.NODE_ENV = 'production';
+console.log('🚀 启动生产服务器 (端口: 8082)');
+require('./app.js');
+`;
+  
+  const fs = require('fs');
+  const launcherPath = path.join(paths.dist, 'index.js');
+  
+  return new Promise((resolve) => {
+    fs.writeFileSync(launcherPath, launcherContent);
+    console.log('✅ 生产环境启动脚本创建成功');
     resolve();
   });
 });
@@ -112,7 +155,7 @@ gulp.task('watch', () => {
 });
 
 // 开发服务器
-gulp.task('serve', () => {
+gulp.task('serve:dev', () => {
   return nodemon({
     script: paths.entry,
     watch: [paths.dist],
@@ -125,8 +168,15 @@ gulp.task('serve', () => {
     delay: 1000,
     verbose: true
   }).on('restart', () => {
-    console.log('🔄 服务器重启中...');
+    console.log('🔄 开发服务器重启中...');
   });
+});
+
+// 生产服务器（不用 nodemon，直接启动）
+gulp.task('serve:prod', (done) => {
+  process.env.NODE_ENV = 'production';
+  require(path.resolve(paths.entry));
+  done();
 });
 
 // 验证构建结果
@@ -152,15 +202,20 @@ gulp.task('validate:build', (done) => {
       }
     });
     
+    // 检查配置文件
+    const configPath = 'dist/config/index.js';
+    if (fs.existsSync(configPath)) {
+      console.log('✅ 配置文件存在，支持环境区分');
+    }
+    
     done();
   } else {
     done(new Error('❌ 构建失败 - 入口文件不存在'));
   }
 });
 
-// 构建任务组合
+// 基础构建任务
 const buildTasks = [
-  'compile:ts',
   'copy:json',
   'copy:static',
   'copy:package'
@@ -169,50 +224,69 @@ const buildTasks = [
 // 开发构建
 gulp.task('build:dev', gulp.series(
   'clean',
+  'compile:ts',
   gulp.parallel(...buildTasks),
   'process:aliases',
-  'create:launcher',
+  'create:launcher:dev',
   'validate:build'
 ));
 
 // 生产构建
-gulp.task('build:prod', gulp.series('clean', () => {
-  // 生产环境构建：不生成 sourcemap，优化代码
-  return gulp.src([paths.src.server])
-    .pipe(tsProject())
-    .pipe(babel({
-      presets: [
-        ['@babel/preset-env', {
-          targets: { node: '18' },
-          modules: 'commonjs'
-        }],
-        '@babel/preset-typescript'
-      ],
-      plugins: [
-        '@babel/plugin-transform-runtime',
-        '@babel/plugin-syntax-dynamic-import',
-        '@babel/plugin-proposal-class-properties'
-      ],
-      compact: true,
-      minified: true
-    }))
-    .pipe(gulp.dest(paths.dist));
-}, gulp.parallel('copy:json', 'copy:static', 'copy:package'), 'process:aliases', 'create:launcher', 'validate:build'));
-
-// 开发任务
-gulp.task('dev', gulp.series(
-  'build:dev',
-  gulp.parallel('watch', 'serve')
+gulp.task('build:prod', gulp.series(
+  'clean',
+  'compile:ts:prod',
+  gulp.parallel(...buildTasks),
+  'process:aliases',
+  'create:launcher:prod',
+  'validate:build'
 ));
 
+// 开发任务（构建+监听+热重载）
+gulp.task('dev', gulp.series(
+  'build:dev',
+  gulp.parallel('watch', 'serve:dev')
+));
+
+// 生产任务（仅构建，不启动服务器）
+gulp.task('prod', gulp.series('build:prod'));
+
 // 快速重构建（跳过清理）
-gulp.task('rebuild', gulp.series(
+gulp.task('rebuild:dev', gulp.series(
+  'compile:ts',
   gulp.parallel(...buildTasks),
   'process:aliases'
 ));
 
-// 只构建不启动
+gulp.task('rebuild:prod', gulp.series(
+  'compile:ts:prod',
+  gulp.parallel(...buildTasks),
+  'process:aliases'
+));
+
+// 只构建不启动（默认开发模式）
 gulp.task('build', gulp.series('build:dev'));
+
+// 检查环境配置
+gulp.task('check:config', (done) => {
+  console.log(`
+🔍 环境配置检查:
+  
+当前环境: ${process.env.NODE_ENV || 'undefined'}
+
+开发环境配置:
+  - NODE_ENV: development
+  - 端口: 8081
+  - 静态资源: ../../../dist/web/
+  - 模板缓存: false
+
+生产环境配置:
+  - NODE_ENV: production  
+  - 端口: 8082
+  - 静态资源: /web/
+  - 模板缓存: memory
+  `);
+  done();
+});
 
 // 默认任务
 gulp.task('default', gulp.series('dev'));
@@ -222,37 +296,30 @@ gulp.task('help', (done) => {
   console.log(`
 🚀 Chalee BFF Gulp 构建工具
 
-可用命令:
-  gulp dev          - 开发模式（构建+监听+热重载）
-  gulp build        - 开发构建
-  gulp build:prod   - 生产构建（优化）
-  gulp clean        - 清理构建目录
-  gulp rebuild      - 快速重构建
-  gulp help         - 显示帮助信息
+开发相关命令:
+  gulp dev              - 开发模式（构建+监听+热重载，端口8081）
+  gulp build:dev        - 开发构建
+  gulp rebuild:dev      - 快速重构建（开发）
+  gulp serve:dev        - 启动开发服务器
 
-项目结构:
-  src/server/       - TypeScript 源码
-  dist/             - 编译后的 JS 文件（平铺结构）
-  dist/index.js     - 生产启动脚本
+生产相关命令:
+  gulp build:prod       - 生产构建（代码优化，端口8082）
+  gulp rebuild:prod     - 快速重构建（生产）
+  gulp prod             - 生产构建（不启动服务器）
+
+通用命令:
+  gulp build            - 默认构建（开发模式）
+  gulp clean            - 清理构建目录
+  gulp check:config     - 检查环境配置
+  gulp help             - 显示帮助信息
+
+环境说明:
+  开发环境: NODE_ENV=development, 端口8081
+  生产环境: NODE_ENV=production,  端口8082
 
 构建输出:
-  src/server/app.ts        → dist/app.js
-  src/server/config/       → dist/config/
-  src/server/controllers/  → dist/controllers/
-  src/server/services/     → dist/services/
-  src/server/entity/       → dist/entity/
-  src/server/interfaces/   → dist/interfaces/
-  src/server/typings/      → dist/typings/
-
-特性支持:
-  ✅ TypeScript 编译
-  ✅ Babel 转译
-  ✅ awilix 依赖注入
-  ✅ koa 框架
-  ✅ 路径别名处理
-  ✅ 热重载开发
-  ✅ 源码映射
-  ✅ 生产优化
+  src/server/ → dist/ (平铺结构)
+  支持环境区分的配置文件
   `);
   done();
 });
