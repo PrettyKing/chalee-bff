@@ -79,79 +79,90 @@ gulp.task('compile:ts:prod', () => {
     .pipe(gulp.dest(paths.dist));
 });
 
-// 复制开发环境配置
-gulp.task('copy:config:dev', () => {
-  const replace = require('gulp-replace');
-  
-  // 创建开发环境专用的 index.js
-  const devConfigContent = `import _ from 'lodash';
-import devConfig from './dev';
+// 创建开发环境专用配置
+gulp.task('create:config:dev', () => {
+  // 创建开发环境专用的 index.js，直接使用 dev 配置
+  const devConfigContent = `import { join } from "path";
+import _ from 'lodash';
+
+// 开发环境配置 (内联)
+const devConfig = {
+    port: 8081,
+    viewDir: join(__dirname, '../../../dist/web/'),
+    staticDir: join(__dirname, '../../../dist/web/'),
+};
 
 let config = {
   port: 8081,
   memoryFlag: false,
 };
 
-// 开发环境固定使用 dev 配置
+// 合并开发环境配置
 config = _.merge(config, devConfig);
 
 export default config;
 `;
 
   const fs = require('fs');
-  return Promise.all([
-    // 复制 dev.ts
-    new Promise((resolve) => {
-      gulp.src([paths.src.configDev])
-        .pipe(gulp.dest('dist/config'))
-        .on('end', resolve);
-    }),
-    // 创建开发环境的 index.ts
-    new Promise((resolve) => {
-      fs.writeFileSync('dist/config/index.ts', devConfigContent);
-      resolve();
-    })
-  ]);
+  const configDir = path.join(paths.dist, 'config');
+  
+  return new Promise((resolve) => {
+    // 确保目录存在
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    // 写入开发环境配置文件
+    fs.writeFileSync(path.join(configDir, 'index.ts'), devConfigContent);
+    console.log('✅ 开发环境配置创建成功 (内联配置)');
+    resolve();
+  });
 });
 
-// 复制生产环境配置
-gulp.task('copy:config:prod', () => {
-  const replace = require('gulp-replace');
-  
-  // 创建生产环境专用的 index.js
-  const prodConfigContent = `import _ from 'lodash';
-import prodConfig from './prod';
+// 创建生产环境专用配置
+gulp.task('create:config:prod', () => {
+  // 创建生产环境专用的 index.js，直接使用 prod 配置
+  const prodConfigContent = `import { join } from "path";
+import _ from 'lodash';
+
+// 生产环境配置 (内联)
+const prodConfig = {
+    port: 8082,
+    memoryFlag: 'memory',
+    viewDir: join(__dirname, '/web/'),
+    staticDir: join(__dirname, '/web/'),
+};
 
 let config = {
   port: 8081,
   memoryFlag: false,
 };
 
-// 生产环境固定使用 prod 配置
+// 合并生产环境配置
 config = _.merge(config, prodConfig);
 
 export default config;
 `;
 
   const fs = require('fs');
-  return Promise.all([
-    // 复制 prod.ts
-    new Promise((resolve) => {
-      gulp.src([paths.src.configProd])
-        .pipe(gulp.dest('dist/config'))
-        .on('end', resolve);
-    }),
-    // 创建生产环境的 index.ts
-    new Promise((resolve) => {
-      fs.writeFileSync('dist/config/index.ts', prodConfigContent);
-      resolve();
-    })
-  ]);
+  const configDir = path.join(paths.dist, 'config');
+  
+  return new Promise((resolve) => {
+    // 确保目录存在
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    // 写入生产环境配置文件
+    fs.writeFileSync(path.join(configDir, 'index.ts'), prodConfigContent);
+    console.log('✅ 生产环境配置创建成功 (内联配置)');
+    resolve();
+  });
 });
 
-// 编译特定环境的配置文件
-gulp.task('compile:config:dev', gulp.series('copy:config:dev', () => {
-  return gulp.src(['dist/config/*.ts'])
+// 编译配置文件（开发环境）
+gulp.task('compile:config:dev', gulp.series('create:config:dev', () => {
+  return gulp.src(['dist/config/index.ts'])
     .pipe(tsProject())
     .pipe(babel({
       presets: [
@@ -170,8 +181,9 @@ gulp.task('compile:config:dev', gulp.series('copy:config:dev', () => {
     .pipe(gulp.dest('dist/config'));
 }));
 
-gulp.task('compile:config:prod', gulp.series('copy:config:prod', () => {
-  return gulp.src(['dist/config/*.ts'])
+// 编译配置文件（生产环境）
+gulp.task('compile:config:prod', gulp.series('create:config:prod', () => {
+  return gulp.src(['dist/config/index.ts'])
     .pipe(tsProject())
     .pipe(babel({
       presets: [
@@ -204,19 +216,13 @@ gulp.task('copy:static', () => {
     .pipe(gulp.dest(paths.dist));
 });
 
-// 复制 package.json
-gulp.task('copy:package', () => {
-  return gulp.src(['package.json'])
-    .pipe(gulp.dest(paths.dist));
-});
-
 // 创建开发环境启动脚本
 gulp.task('create:launcher:dev', () => {
   const launcherContent = `#!/usr/bin/env node
-// 开发环境启动脚本
+// 开发环境启动脚本 - 精简版
 process.env.NODE_ENV = 'development';
 console.log('🚀 启动开发服务器 (端口: 8081)');
-console.log('📁 配置: 使用开发环境配置');
+console.log('📁 配置: 开发环境 (内联配置)');
 require('./app.js');
 `;
   
@@ -233,10 +239,10 @@ require('./app.js');
 // 创建生产环境启动脚本
 gulp.task('create:launcher:prod', () => {
   const launcherContent = `#!/usr/bin/env node
-// 生产环境启动脚本
+// 生产环境启动脚本 - 精简版
 process.env.NODE_ENV = 'production';
 console.log('🚀 启动生产服务器 (端口: 8082)');
-console.log('📁 配置: 使用生产环境配置');
+console.log('📁 配置: 生产环境 (内联配置)');
 require('./app.js');
 `;
   
@@ -266,11 +272,12 @@ gulp.task('process:aliases', () => {
     .pipe(gulp.dest(paths.dist));
 });
 
-// 清理编译后的 TypeScript 文件
-gulp.task('cleanup:ts', () => {
+// 清理编译后的 TypeScript 文件和不必要的文件
+gulp.task('cleanup:files', () => {
   return del([
     'dist/**/*.ts',
-    'dist/**/*.ts.map'
+    'dist/**/*.ts.map',
+    'dist/package.json'  // 移除 package.json
   ]);
 });
 
@@ -311,7 +318,7 @@ gulp.task('validate:build', (done) => {
     // 检查关键文件
     const criticalFiles = [
       'dist/config',
-      'dist/controllers',
+      'dist/controllers', 
       'dist/services'
     ];
     
@@ -323,19 +330,34 @@ gulp.task('validate:build', (done) => {
       }
     });
     
-    // 检查配置文件
+    // 检查配置文件（只有 index.js）
     const configIndex = 'dist/config/index.js';
     if (fs.existsSync(configIndex)) {
-      console.log('✅ 配置文件存在，支持环境区分');
-      
-      // 检查环境特定配置
-      const env = process.env.BUILD_ENV || 'development';
-      const envConfigFile = env === 'production' ? 'dist/config/prod.js' : 'dist/config/dev.js';
-      if (fs.existsSync(envConfigFile)) {
-        console.log(`✅ ${env} 环境配置文件存在`);
+      console.log('✅ 配置文件存在 (单一环境配置)');
+    }
+    
+    // 检查不应该存在的文件
+    const unwantedFiles = [
+      'dist/package.json',
+      'dist/config/dev.js',
+      'dist/config/prod.js'
+    ];
+    
+    unwantedFiles.forEach(file => {
+      if (!fs.existsSync(file)) {
+        console.log(`✅ ${file} 已正确移除`);
       } else {
-        console.warn(`⚠️  ${env} 环境配置文件缺失`);
+        console.warn(`⚠️  ${file} 仍然存在 (应被移除)`);
       }
+    });
+    
+    // 显示最终构建大小
+    const { execSync } = require('child_process');
+    try {
+      const size = execSync('du -sh dist/ 2>/dev/null || echo "无法计算大小"', { encoding: 'utf8' });
+      console.log(`📦 构建产物大小: ${size.trim()}`);
+    } catch (error) {
+      console.log('📦 构建产物大小: 无法计算');
     }
     
     done();
@@ -344,11 +366,11 @@ gulp.task('validate:build', (done) => {
   }
 });
 
-// 基础构建任务（排除配置）
+// 基础构建任务（不包含 package.json）
 const buildTasks = [
   'copy:json',
-  'copy:static',
-  'copy:package'
+  'copy:static'
+  // 移除 'copy:package'
 ];
 
 // 开发构建
@@ -358,7 +380,7 @@ gulp.task('build:dev', gulp.series(
   gulp.parallel(...buildTasks),
   'compile:config:dev',
   'process:aliases',
-  'cleanup:ts',
+  'cleanup:files',
   'create:launcher:dev',
   'validate:build'
 ));
@@ -370,7 +392,7 @@ gulp.task('build:prod', gulp.series(
   gulp.parallel(...buildTasks),
   'compile:config:prod',
   'process:aliases',
-  'cleanup:ts',
+  'cleanup:files',
   'create:launcher:prod',
   'validate:build'
 ));
@@ -390,7 +412,7 @@ gulp.task('rebuild:dev', gulp.series(
   gulp.parallel(...buildTasks),
   'compile:config:dev',
   'process:aliases',
-  'cleanup:ts'
+  'cleanup:files'
 ));
 
 gulp.task('rebuild:prod', gulp.series(
@@ -398,7 +420,7 @@ gulp.task('rebuild:prod', gulp.series(
   gulp.parallel(...buildTasks),
   'compile:config:prod',
   'process:aliases',
-  'cleanup:ts'
+  'cleanup:files'
 ));
 
 // 只构建不启动（默认开发模式）
@@ -409,41 +431,45 @@ gulp.task('check:config', (done) => {
   const fs = require('fs');
   
   console.log(`
-🔍 环境配置检查:
+🔍 精简构建配置检查:
   
 当前环境: ${process.env.NODE_ENV || 'undefined'}
 
-开发环境配置 (dev.ts):
-  - 端口: 8081
-  - 静态资源: ../../../dist/web/
-  - 模板缓存: false (未设置)
-
-生产环境配置 (prod.ts):
-  - 端口: 8082
-  - 静态资源: /web/
-  - 模板缓存: memory
+构建优化:
+  ❌ package.json - 已移除
+  ❌ dev.ts/prod.ts - 已移除 (配置内联)
+  ✅ 单一 index.js - 环境专用配置
+  ✅ TypeScript 源文件 - 已清理
 
 构建后配置文件:
   `);
   
   // 检查构建后的配置文件
   if (fs.existsSync('dist/config/index.js')) {
-    console.log('✅ dist/config/index.js - 存在');
+    console.log('✅ dist/config/index.js - 存在 (唯一配置文件)');
+    
+    // 读取配置文件大小
+    const stats = fs.statSync('dist/config/index.js');
+    console.log(`📏 配置文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
   } else {
     console.log('❌ dist/config/index.js - 不存在');
   }
   
-  if (fs.existsSync('dist/config/dev.js')) {
-    console.log('✅ dist/config/dev.js - 存在');
-  } else {
-    console.log('❌ dist/config/dev.js - 不存在');
-  }
+  // 确认不需要的文件已被移除
+  const checkFiles = [
+    { path: 'dist/package.json', shouldExist: false, name: 'package.json' },
+    { path: 'dist/config/dev.js', shouldExist: false, name: 'dev.js' },
+    { path: 'dist/config/prod.js', shouldExist: false, name: 'prod.js' }
+  ];
   
-  if (fs.existsSync('dist/config/prod.js')) {
-    console.log('✅ dist/config/prod.js - 存在');
-  } else {
-    console.log('❌ dist/config/prod.js - 不存在');
-  }
+  checkFiles.forEach(({ path, shouldExist, name }) => {
+    const exists = fs.existsSync(path);
+    if (exists === shouldExist) {
+      console.log(`✅ ${name} - ${shouldExist ? '存在' : '已正确移除'}`);
+    } else {
+      console.log(`❌ ${name} - ${exists ? '不应存在' : '缺失'}`);
+    }
+  });
   
   done();
 });
@@ -454,33 +480,38 @@ gulp.task('default', gulp.series('dev'));
 // 帮助任务
 gulp.task('help', (done) => {
   console.log(`
-🚀 Chalee BFF Gulp 构建工具 - 环境配置版
+🚀 Chalee BFF Gulp 构建工具 - 精简优化版
 
 开发相关命令:
   gulp dev              - 开发模式（构建+监听+热重载，端口8081）
-  gulp build:dev        - 开发构建（只包含 dev.js 配置）
+  gulp build:dev        - 开发构建（精简版，内联配置）
   gulp rebuild:dev      - 快速重构建（开发）
 
 生产相关命令:
-  gulp build:prod       - 生产构建（只包含 prod.js 配置）
+  gulp build:prod       - 生产构建（精简版，内联配置）
   gulp rebuild:prod     - 快速重构建（生产）
   gulp prod             - 生产构建（不启动服务器）
 
 通用命令:
   gulp build            - 默认构建（开发模式）
   gulp clean            - 清理构建目录
-  gulp check:config     - 检查环境配置
+  gulp check:config     - 检查精简构建结果
   gulp help             - 显示帮助信息
 
-配置文件处理:
-  开发构建: 只复制 dev.ts + 生成开发版 index.ts
-  生产构建: 只复制 prod.ts + 生成生产版 index.ts
-  
-构建优化:
-  ✅ 环境特定配置
-  ✅ 减少不必要文件
-  ✅ 配置文件编译
-  ✅ TypeScript 清理
+精简优化特性:
+  ❌ 移除 package.json   - 减少不必要文件
+  ❌ 移除多余配置文件     - 只保留环境专用配置
+  ✅ 配置内联            - 无外部依赖
+  ✅ TypeScript 清理      - 移除源文件
+  ✅ 最小化构建产物       - 极致优化
+
+构建产物结构:
+  dist/
+  ├── index.js          # 启动脚本
+  ├── app.js           # 应用入口
+  ├── config/          # 配置目录
+  │   └── index.js     # 环境专用配置 (内联)
+  └── ...              # 其他业务代码
   `);
   done();
 });
