@@ -12,12 +12,10 @@ const paths = {
     server: 'src/server/**/*.ts',
     serverJs: 'src/server/**/*.js',
     json: 'src/server/**/*.json',
-    static: 'src/server/**/*.{yaml,yml,env,txt,html}',
-    config: 'config/**/*'
+    static: 'src/server/**/*.{yaml,yml,env,txt,html}'
   },
   dist: 'dist',
-  distServer: 'dist/server',
-  entry: 'dist/server/app.js'
+  entry: 'dist/app.js'
 };
 
 // TypeScript 项目配置
@@ -51,25 +49,19 @@ gulp.task('compile:ts', () => {
       ]
     }))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest(paths.distServer));
+    .pipe(gulp.dest(paths.dist));
 });
 
 // 复制 JSON 配置文件
 gulp.task('copy:json', () => {
   return gulp.src([paths.src.json])
-    .pipe(gulp.dest(paths.distServer));
+    .pipe(gulp.dest(paths.dist));
 });
 
 // 复制静态文件
 gulp.task('copy:static', () => {
   return gulp.src([paths.src.static])
-    .pipe(gulp.dest(paths.distServer));
-});
-
-// 复制根目录配置文件
-gulp.task('copy:config', () => {
-  return gulp.src([paths.src.config])
-    .pipe(gulp.dest('dist/config'));
+    .pipe(gulp.dest(paths.dist));
 });
 
 // 复制 package.json
@@ -83,7 +75,7 @@ gulp.task('create:launcher', () => {
   const launcherContent = `#!/usr/bin/env node
 // 生产环境启动脚本
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-require('./server/app.js');
+require('./app.js');
 `;
   
   const fs = require('fs');
@@ -100,7 +92,7 @@ require('./server/app.js');
 gulp.task('process:aliases', () => {
   const replace = require('gulp-replace');
   
-  return gulp.src([`${paths.distServer}/**/*.js`])
+  return gulp.src([`${paths.dist}/**/*.js`])
     .pipe(replace(/@root/g, '__dirname'))
     .pipe(replace(/@interfaces/g, `\${__dirname}/interfaces`))
     .pipe(replace(/@config/g, `\${__dirname}/config`))
@@ -109,7 +101,7 @@ gulp.task('process:aliases', () => {
     .pipe(replace(/@controllers/g, `\${__dirname}/controllers`))
     .pipe(replace(/@entity/g, `\${__dirname}/entity`))
     .pipe(replace(/@typings/g, `\${__dirname}/typings`))
-    .pipe(gulp.dest(paths.distServer));
+    .pipe(gulp.dest(paths.dist));
 });
 
 // 监听文件变化
@@ -117,14 +109,13 @@ gulp.task('watch', () => {
   gulp.watch([paths.src.server], gulp.series('compile:ts', 'process:aliases'));
   gulp.watch([paths.src.json], gulp.series('copy:json'));
   gulp.watch([paths.src.static], gulp.series('copy:static'));
-  gulp.watch([paths.src.config], gulp.series('copy:config'));
 });
 
 // 开发服务器
 gulp.task('serve', () => {
   return nodemon({
     script: paths.entry,
-    watch: [paths.distServer],
+    watch: [paths.dist],
     env: { 
       'NODE_ENV': 'development',
       'DEBUG': 'awilix:*'
@@ -148,9 +139,9 @@ gulp.task('validate:build', (done) => {
     
     // 检查关键文件
     const criticalFiles = [
-      'dist/server/config',
-      'dist/server/controllers',
-      'dist/server/services'
+      'dist/config',
+      'dist/controllers',
+      'dist/services'
     ];
     
     criticalFiles.forEach(file => {
@@ -172,7 +163,6 @@ const buildTasks = [
   'compile:ts',
   'copy:json',
   'copy:static',
-  'copy:config',
   'copy:package'
 ];
 
@@ -206,8 +196,8 @@ gulp.task('build:prod', gulp.series('clean', () => {
       compact: true,
       minified: true
     }))
-    .pipe(gulp.dest(paths.distServer));
-}, gulp.parallel('copy:json', 'copy:static', 'copy:config', 'copy:package'), 'process:aliases', 'create:launcher', 'validate:build'));
+    .pipe(gulp.dest(paths.dist));
+}, gulp.parallel('copy:json', 'copy:static', 'copy:package'), 'process:aliases', 'create:launcher', 'validate:build'));
 
 // 开发任务
 gulp.task('dev', gulp.series(
@@ -242,8 +232,17 @@ gulp.task('help', (done) => {
 
 项目结构:
   src/server/       - TypeScript 源码
-  dist/server/      - 编译后的 JS 文件
+  dist/             - 编译后的 JS 文件（平铺结构）
   dist/index.js     - 生产启动脚本
+
+构建输出:
+  src/server/app.ts        → dist/app.js
+  src/server/config/       → dist/config/
+  src/server/controllers/  → dist/controllers/
+  src/server/services/     → dist/services/
+  src/server/entity/       → dist/entity/
+  src/server/interfaces/   → dist/interfaces/
+  src/server/typings/      → dist/typings/
 
 特性支持:
   ✅ TypeScript 编译
