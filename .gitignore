@@ -1,0 +1,26 @@
+*.log*
+.cache
+.DS_Store
+.idea
+.vscode
+.env
+
+# npm
+node_modules
+*/node_modules
+package-lock.json
+web-connectkit.bak
+# test
+**/test/coverage
+test
+
+# dist file
+es
+lib
+dist
+build
+**/site-dist
+changelog.generated.md
+
+# temp file
+packages/vant/README.md
