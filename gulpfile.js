@@ -251,7 +251,6 @@ require('./app.js');
   
   return new Promise((resolve) => {
     fs.writeFileSync(launcherPath, launcherContent);
-    console.log('✅ 生产环境启动脚本创建成功');
     resolve();
   });
 });
@@ -312,9 +311,7 @@ gulp.task('validate:build', (done) => {
   const fs = require('fs');
   const appPath = paths.entry;
   
-  if (fs.existsSync(appPath)) {
-    console.log('✅ 构建验证成功 - 入口文件存在');
-    
+  if (fs.existsSync(appPath)) {    
     // 检查关键文件
     const criticalFiles = [
       'dist/config',
@@ -430,20 +427,6 @@ gulp.task('build', gulp.series('build:dev'));
 gulp.task('check:config', (done) => {
   const fs = require('fs');
   
-  console.log(`
-🔍 精简构建配置检查:
-  
-当前环境: ${process.env.NODE_ENV || 'undefined'}
-
-构建优化:
-  ❌ package.json - 已移除
-  ❌ dev.ts/prod.ts - 已移除 (配置内联)
-  ✅ 单一 index.js - 环境专用配置
-  ✅ TypeScript 源文件 - 已清理
-
-构建后配置文件:
-  `);
-  
   // 检查构建后的配置文件
   if (fs.existsSync('dist/config/index.js')) {
     console.log('✅ dist/config/index.js - 存在 (唯一配置文件)');
@@ -479,39 +462,5 @@ gulp.task('default', gulp.series('dev'));
 
 // 帮助任务
 gulp.task('help', (done) => {
-  console.log(`
-🚀 Chalee BFF Gulp 构建工具 - 精简优化版
-
-开发相关命令:
-  gulp dev              - 开发模式（构建+监听+热重载，端口8081）
-  gulp build:dev        - 开发构建（精简版，内联配置）
-  gulp rebuild:dev      - 快速重构建（开发）
-
-生产相关命令:
-  gulp build:prod       - 生产构建（精简版，内联配置）
-  gulp rebuild:prod     - 快速重构建（生产）
-  gulp prod             - 生产构建（不启动服务器）
-
-通用命令:
-  gulp build            - 默认构建（开发模式）
-  gulp clean            - 清理构建目录
-  gulp check:config     - 检查精简构建结果
-  gulp help             - 显示帮助信息
-
-精简优化特性:
-  ❌ 移除 package.json   - 减少不必要文件
-  ❌ 移除多余配置文件     - 只保留环境专用配置
-  ✅ 配置内联            - 无外部依赖
-  ✅ TypeScript 清理      - 移除源文件
-  ✅ 最小化构建产物       - 极致优化
-
-构建产物结构:
-  dist/
-  ├── index.js          # 启动脚本
-  ├── app.js           # 应用入口
-  ├── config/          # 配置目录
-  │   └── index.js     # 环境专用配置 (内联)
-  └── ...              # 其他业务代码
-  `);
   done();
 });
