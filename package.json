@@ -1,15 +1,23 @@
 {
   "name": "web-ai-dapp",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "client:dev": "webpack --mode development",
     "client:server": "webpack serve --mode development",
     "client:prod": "webpack --mode production",
     "lint:fix": "tsc --noEmit & eslint ./src --ext .ts,.tsx,.js --fix",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "server:dev": "ts-node-dev --respawn --transpile-only src/server/app.ts",
-    "server:prod": "gulp"
+    "server:dev": "gulp dev",
+    "server:build": "gulp build",
+    "server:build:prod": "gulp build:prod",
+    "server:prod": "gulp build:prod && node dist/index.js",
+    "dev": "gulp dev",
+    "build": "gulp build",
+    "build:prod": "gulp build:prod",
+    "start": "node dist/index.js",
+    "clean": "gulp clean",
+    "help": "gulp help"
   },
   "keywords": [],
   "author": "",
@@ -26,12 +34,17 @@
     "clean-webpack-plugin": "^4.0.0",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.2",
+    "del": "^6.1.1",
     "eslint-config-airbnb-typescript": "^18.0.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-jest": "^28.13.3",
     "eslint-plugin-prettier": "^5.4.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "gulp-nodemon": "^2.5.0",
+    "gulp-replace": "^1.1.4",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-typescript": "^6.0.0",
     "html-webpack-plugin": "^5.6.3",
     "jest": "^30.0.0",
     "mini-css-extract-plugin": "^2.9.2",
@@ -42,6 +55,7 @@
     "swc-loader": "^0.2.6",
     "tailwindcss": "^4.1.8",
     "themed-progress-plugin": "^1.0.1",
+    "typescript": "^5.7.2",
     "webpack": "^5.99.9",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^6.0.1",
@@ -50,9 +64,11 @@
     "yargs-parser": "^22.0.0"
   },
   "dependencies": {
+    "@babel/core": "^7.27.1",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
     "@babel/plugin-transform-runtime": "^7.27.4",
+    "@babel/preset-env": "^7.27.1",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
     "@types/co": "^4.6.6",
@@ -81,5 +97,9 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
     "ts-node-dev": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
