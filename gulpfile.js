@@ -129,8 +129,8 @@ import _ from 'lodash';
 const prodConfig = {
     port: 8082,
     memoryFlag: 'memory',
-    viewDir: join(__dirname, '/web/'),
-    staticDir: join(__dirname, '/web/'),
+    viewDir: join(__dirname, '../web/'),
+    staticDir: join(__dirname, '../web/'),
 };
 
 let config = {
