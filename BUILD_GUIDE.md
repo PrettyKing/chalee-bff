@@ -47,12 +47,18 @@ chalee-bff/
 │   │   ├── interfaces/  # TypeScript 接口
 │   │   └── typings/     # 类型定义
 │   └── web/             # 前端代码
-├── dist/                # 构建输出目录
-│   ├── server/          # 编译后的服务端代码
-│   ├── config/          # 配置文件
-│   └── index.js         # 生产启动脚本
-├── config/              # 环境配置
-├── gulpfile.js          # Gulp 构建配置
+├── dist/                # 构建输出目录（平铺结构）
+│   ├── app.js          # 应用入口（从 src/server/app.ts 编译）
+│   ├── config/         # 配置文件目录
+│   ├── controllers/    # 控制器目录
+│   ├── services/       # 服务目录
+│   ├── entity/         # 实体目录
+│   ├── interfaces/     # 接口目录
+│   ├── typings/        # 类型定义目录
+│   ├── package.json    # 依赖信息
+│   └── index.js        # 生产启动脚本
+├── config/             # 根目录配置（不参与构建）
+├── gulpfile.js         # Gulp 构建配置
 └── package.json
 ```
 
@@ -68,6 +74,20 @@ chalee-bff/
 | `gulp help` | 显示详细帮助信息 |
 
 ## ⚙️ 构建特性
+
+### 构建输出说明
+构建过程将 `src/server/` 目录下的所有文件编译后平铺到 `dist/` 根目录：
+
+```bash
+# 构建映射关系
+src/server/app.ts        → dist/app.js
+src/server/config/       → dist/config/
+src/server/controllers/  → dist/controllers/
+src/server/services/     → dist/services/
+src/server/entity/       → dist/entity/
+src/server/interfaces/   → dist/interfaces/
+src/server/typings/      → dist/typings/
+```
 
 ### TypeScript 编译
 - ✅ 完整的 TypeScript 支持
@@ -131,6 +151,7 @@ import { IUser } from '@interfaces/user';     // → ./interfaces/user
 2. **控制器**: 在 `src/server/controllers/` 目录下创建控制器，使用 awilix-koa 自动加载
 3. **配置管理**: 将配置文件放在 `src/server/config/` 目录下
 4. **类型定义**: 在 `src/server/interfaces/` 目录下定义 TypeScript 接口
+5. **根目录配置**: 根目录的 `config/` 文件夹不会参与构建，保持原有配置管理方式
 
 ## 🐛 故障排除
 
@@ -170,10 +191,9 @@ FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
-COPY dist/ ./dist/
-COPY config/ ./config/
+COPY dist/ ./
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
 ```
 
 ### PM2 部署
@@ -188,6 +208,22 @@ pm2 start dist/index.js --name chalee-bff
 pm2 logs chalee-bff
 ```
 
+## 🎯 构建流程说明
+
+### 开发构建流程
+1. 清理 `dist/` 目录
+2. 编译 TypeScript 文件到 `dist/`
+3. 复制 JSON 和静态文件到 `dist/`
+4. 处理路径别名
+5. 创建启动脚本 `dist/index.js`
+6. 验证构建结果
+
+### 生产构建优化
+- 代码压缩和混淆
+- 移除源码映射
+- 优化包大小
+- 性能优化
+
 ---
 
-🎉 现在你可以开始开发你的 awilix + koa 应用了！
+🎉 现在你可以开始使用优化的构建流程开发你的 awilix + koa 应用了！
