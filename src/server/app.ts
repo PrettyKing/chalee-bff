@@ -23,9 +23,8 @@ const { port, viewDir, memoryFlag, staticDir } = config;
 //静态资源生效节点
 app.use(serve(staticDir));
 const container = createContainer();
-
 //所有的可以被注入的代码都在container中
-container.loadModules([`${__dirname}/services/*.ts`], {
+container.loadModules([`${__dirname}/services/*.js`], {
   formatName: 'camelCase',
   resolverOptions: {
     lifetime: Lifetime.SCOPED,
@@ -42,9 +41,9 @@ app.context.render = co.wrap(
     ext: 'html',
   })
 );
-app.use(historyApiFallback({ index: '/', whiteList: ['/api'] }));
+app.use(loadControllers(`${__dirname}/controllers/*.js`));
+app.use(historyApiFallback({ index: '/', whiteList: ['/api','/dev'] }));
 // 让所有的路由全部生效
-app.use(loadControllers(`${__dirname}/controllers/*.ts`));
 app.listen(port, () => {
   console.log(`Chalee BFF App启动成功 http://localhost:${port}/`);
 });
