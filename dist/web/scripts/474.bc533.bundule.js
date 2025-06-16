@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkweb_ai_dapp=self.webpackChunkweb_ai_dapp||[]).push([[474],{474:(e,a,s)=>{s.r(a),s.d(a,{default:()=>c});var p=s(420);const c=()=>(0,p.jsx)(p.Fragment,{children:(0,p.jsx)("h1",{children:"Test"})})}}]);

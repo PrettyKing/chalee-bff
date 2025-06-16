@@ -1,0 +1,1 @@
+"use strict";Object.defineProperty(exports,"__esModule",{value:true});const path_1=require("path");exports.default={port:8081,viewDir:(0,path_1.join)(__dirname,"../../../dist/web/"),staticDir:(0,path_1.join)(__dirname,"../../../dist/web/")};

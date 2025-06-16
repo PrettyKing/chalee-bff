@@ -1,0 +1,3 @@
+"use strict";var __importDefault=void 0&&(void 0).__importDefault||function(mod){return mod&&mod.__esModule?mod:{"default":mod}};Object.defineProperty(exports,"__esModule",{value:true});const path_1=require("path");const lodash_1=__importDefault(require("lodash"));// 生产环境配置 (内联)
+const prodConfig={port:8082,memoryFlag:"memory",viewDir:(0,path_1.join)(__dirname,"../web/"),staticDir:(0,path_1.join)(__dirname,"../web/")};let config={port:8081,memoryFlag:false};// 合并生产环境配置
+config=lodash_1.default.merge(config,prodConfig);exports.default=config;

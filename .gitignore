@@ -17,7 +17,6 @@ test
 # dist file
 es
 lib
-dist
 build
 **/site-dist
 changelog.generated.md
