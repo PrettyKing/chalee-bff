@@ -1,0 +1,18 @@
+{
+  "apps": [
+    {
+      "name": "my-bff",
+      "script": "dist/index.js",
+      "instances": 2,
+      "exec_mode": "cluster",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "watch": true,
+      "ignore_watch": ["node_modules", "logs"],
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/err.log",
+      "out_file": "./logs/out.log"
+    }
+  ]
+}
