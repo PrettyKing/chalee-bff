@@ -13,7 +13,7 @@
     "server:build:prod": "cross-env NODE_ENV=production gulp build:prod",
     "server:start": "node dist/index.js",
     "clean": "gulp clean",
-    "pm2:start": "pm2 start pm2.conf.json"
+    "pm2:start": "pm2 start ecosystem.conf.json"
   },
   "keywords": [],
   "author": "",
